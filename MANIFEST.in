@@ -1,0 +1,23 @@
+# Files to include in the source distribution beyond what setuptools discovers.
+# The wheel only ever contains src/imgsim; everything here is for people who
+# download the sdist to build, test or read.
+
+include LICENSE
+include README.md
+include README.zh-CN.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include pyproject.toml
+
+# setuptools only auto-includes tests/test*.py, which silently drops conftest.py.
+# Without it the shipped test suite cannot run, so include the whole directory.
+recursive-include tests *.py
+recursive-include examples *.py
+
+# Never ship local build or cache artefacts.
+# setuptools already excludes __pycache__ and *.pyc by default; these prunes handle
+# the directories that would otherwise be picked up when building in-place.
+prune .github
+prune _distcheck
+prune dist
+prune build
