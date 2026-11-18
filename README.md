@@ -5,7 +5,7 @@
 [![CI](https://github.com/zhouchuan315-png/imgsim/actions/workflows/ci.yml/badge.svg)](https://github.com/zhouchuan315-png/imgsim/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
-[![PyPI](https://img.shields.io/badge/pypi-imgsim--py-orange.svg)](https://pypi.org/project/imgsim-py/)
+[![PyPI](https://img.shields.io/pypi/v/imgsim-py.svg)](https://pypi.org/project/imgsim-py/)
 
 `imgsim` indexes a directory of images, computes a 64-bit perceptual fingerprint for
 each one, and groups the ones that are the same picture — resized, recompressed,

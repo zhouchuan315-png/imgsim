@@ -5,6 +5,7 @@
 [![CI](https://github.com/zhouchuan315-png/imgsim/actions/workflows/ci.yml/badge.svg)](https://github.com/zhouchuan315-png/imgsim/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+[![PyPI](https://img.shields.io/pypi/v/imgsim-py.svg)](https://pypi.org/project/imgsim-py/)
 
 `imgsim` 扫描一个图片目录，为每张图算一个 64 位感知指纹，把「同一张图的不同版本」
 聚成一组——改过尺寸的、重新压缩的、裁切过的、调过亮度的、转成黑白的，都能认出来。
