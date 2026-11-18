@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imgsim-py"
+version = "0.1.0"
+description = "Find duplicate and near-duplicate images with perceptual hashing, color verification and clustering."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "zhou", email = "zhouchuan315@gmail.com" }]
+keywords = [
+    "image",
+    "similarity",
+    "duplicate",
+    "deduplication",
+    "perceptual-hash",
+    "phash",
+    "near-duplicate",
+    "image-dedup",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.21",
+    "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+# 语义相似度模式（同主题不同构图），需要 PyTorch
+embed = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+imgsim = "imgsim.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/zhouchuan315-png/imgsim"
+Repository = "https://github.com/zhouchuan315-png/imgsim"
+Issues = "https://github.com/zhouchuan315-png/imgsim/issues"
+Changelog = "https://github.com/zhouchuan315-png/imgsim/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+imgsim = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error::DeprecationWarning:imgsim.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",  # 行宽交给 formatter
+    "RUF001", "RUF002", "RUF003",  # 允许中文标点出现在注释/docstring
+]
+
+[tool.coverage.run]
+source = ["imgsim"]
+omit = ["*/cli.py"]
