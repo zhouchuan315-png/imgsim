@@ -275,6 +275,37 @@ class ImageIndex:
         self._cached_colors = colors
         return distances, colors
 
+    def _effective_distances(self, color_threshold: float) -> np.ndarray:
+        """Distance matrix with every veto applied — ``inf`` means "never similar".
+
+        This is the single source of truth for what counts as a candidate pair.
+        ``compare``, ``iter_pairs`` and ``nearest`` all route through it; when they
+        each reimplemented the rules separately they drifted apart, and
+        ``iter_pairs`` silently returned different pairs than ``compare`` on any
+        corpus containing low-information images.
+        """
+        distances, colors = self._matrices()
+        effective = distances.astype(np.float32, copy=True)
+
+        if colors is not None:
+            # Perceptual hashes are grayscale, so without this a red and a green
+            # apple of identical shape hash to the same fingerprint.
+            low_information = np.array(self._ac_ratios) < LOW_INFORMATION_AC
+            strict = low_information[:, None] | low_information[None, :]
+            if strict.any():
+                # Solid colours and line art hash unreliably; demand closer colour.
+                cutoff = np.where(strict, LOW_INFORMATION_COLOR_TOL, color_threshold)
+            else:
+                cutoff = color_threshold
+            effective[colors > cutoff] = np.inf
+
+        if self._valid and not all(self._valid):
+            invalid = np.array([not v for v in self._valid])
+            effective[invalid, :] = np.inf
+            effective[:, invalid] = np.inf
+
+        return effective
+
     def compare(
         self,
         threshold: float | None = None,
@@ -308,25 +339,7 @@ class ImageIndex:
                 kind=self.mode, elapsed=time.perf_counter() - started,
             )
 
-        distances, colors = self._matrices()
-        effective = distances.astype(np.float32, copy=True)
-
-        if colors is not None:
-            # Color veto. Perceptual hashes are grayscale, so without this a red and
-            # a green apple of identical shape hash to the same fingerprint.
-            low_information = np.array(self._ac_ratios) < LOW_INFORMATION_AC
-            strict = low_information[:, None] | low_information[None, :]
-            if strict.any():
-                # Solid-color and line-art images hash unreliably; demand closer color.
-                colors_ok = colors <= np.where(strict, LOW_INFORMATION_COLOR_TOL, color_threshold)
-            else:
-                colors_ok = colors <= color_threshold
-            effective[~colors_ok] = np.inf
-
-        if self._valid and not all(self._valid):
-            invalid = np.array([not v for v in self._valid])
-            effective[invalid, :] = np.inf
-            effective[:, invalid] = np.inf
+        effective = self._effective_distances(color_threshold)
 
         groups = self._build_groups(effective, threshold)
         pairs = self._build_pairs(effective, threshold, pairs_limit)
@@ -375,7 +388,12 @@ class ImageIndex:
             for i, j, v in zip(rows, cols, values)
         ]
 
-    def nearest(self, path: str | Path, k: int = 5) -> list[tuple[Path, float]]:
+    def nearest(
+        self,
+        path: str | Path,
+        k: int = 5,
+        color_threshold: float = DEFAULT_COLOR_THRESHOLD,
+    ) -> list[tuple[Path, float]]:
         """Find the *k* indexed images closest to an arbitrary image.
 
         The query image does not need to be in the index; it is fingerprinted on
@@ -384,6 +402,7 @@ class ImageIndex:
         Args:
             path: Query image.
             k: How many neighbours to return.
+            color_threshold: Color veto cutoff, same meaning as in :meth:`compare`.
 
         Returns:
             ``[(path, distance), ...]`` sorted by increasing distance. Empty if the
@@ -402,7 +421,7 @@ class ImageIndex:
         if features is None:
             return []
         gray, signature = features
-        ph_bits, _ = phash(gray, self.hash_size)
+        ph_bits, query_ac = phash(gray, self.hash_size)
         dh_bits = dhash(gray, self.hash_size)
 
         ph_q = pack_bits(np.array([ph_bits]))
@@ -418,7 +437,14 @@ class ImageIndex:
                                 np.array(self._signatures, dtype=np.float32))[0]
         # hamming() returns a (1, n) matrix for a single query; flatten before sorting
         scores = combined[0]
-        scores = np.where(colors <= DEFAULT_COLOR_THRESHOLD, scores, np.inf)
+
+        # Mirror compare()'s vetoes, including the stricter cutoff that applies when
+        # either side is a low-information image, so a query returns the same
+        # neighbours the index would have grouped it with.
+        low_query = query_ac < LOW_INFORMATION_AC
+        low_index = np.array(self._ac_ratios) < LOW_INFORMATION_AC
+        cutoff = np.where(low_query | low_index, LOW_INFORMATION_COLOR_TOL, color_threshold)
+        scores = np.where(colors <= cutoff, scores, np.inf)
 
         valid = np.array(self._valid)
         scores = np.where(valid, scores, np.inf)
@@ -508,20 +534,29 @@ class ImageIndex:
 
         return index
 
-    def iter_pairs(self, threshold: float) -> Iterator[tuple[Path, Path, float]]:
-        """Stream similar pairs instead of materialising them all.
+    def iter_pairs(
+        self,
+        threshold: float | None = None,
+        color_threshold: float = DEFAULT_COLOR_THRESHOLD,
+    ) -> Iterator[tuple[Path, Path, float]]:
+        """Stream similar pairs, applying exactly the same vetoes as :meth:`compare`.
 
-        Equivalent to :meth:`compare` but yields lazily, which matters when a large
-        duplicate cluster would otherwise produce millions of Pair objects.
+        Pairs come out in index order rather than sorted by distance, so the sequence
+        differs from ``compare().pairs`` while the contents are identical.
+
+        Use it when a corpus contains duplicate clusters so large that materialising
+        every ``Pair`` would exhaust memory. Note that the distance matrix itself is
+        still held in memory — this reduces the cost of the *results*, not of the
+        comparison.
         """
-        distances, colors = self._matrices()
-        n = distances.shape[0]
+        if threshold is None:
+            threshold = (
+                DEFAULT_HASH_THRESHOLD if self.mode == "hash" else DEFAULT_EMBED_THRESHOLD
+            )
+        effective = self._effective_distances(color_threshold)
+        n = effective.shape[0]
         for i in range(n - 1):
-            row = distances[i]
-            for j in range(i + 1, n):
-                value = row[j]
-                if value > threshold:
-                    continue
-                if colors is not None and colors[i, j] > DEFAULT_COLOR_THRESHOLD:
-                    continue
-                yield self._paths[i], self._paths[j], float(value)
+            row = effective[i, i + 1:]
+            for offset in np.flatnonzero(row <= threshold):
+                j = i + 1 + int(offset)
+                yield self._paths[i], self._paths[j], float(row[offset])

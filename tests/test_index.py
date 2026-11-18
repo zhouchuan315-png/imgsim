@@ -204,7 +204,33 @@ def test_report_escapes_filenames(tmp_path):
     assert "a&amp;b" in html
 
 
-def test_iter_pairs_matches_compare(index):
+def test_iter_pairs_matches_compare_exactly(corpus, index):
+    """Regression: iter_pairs used to bypass the low-information color guard.
+
+    It recomputed the color veto with the flat default threshold instead of routing
+    through the shared logic, so on a corpus containing flat images it yielded pairs
+    that compare() had already rejected.
+    """
     result = index.compare(threshold=12)
     streamed = list(index.iter_pairs(12))
+
     assert len(streamed) == len(result.pairs)
+    assert {(a, b) for a, b, _ in streamed} == {(p.a, p.b) for p in result.pairs}
+    assert {round(d, 6) for _, _, d in streamed} == {
+        round(p.distance, 6) for p in result.pairs
+    }
+
+
+def test_iter_pairs_and_compare_agree_on_low_information_corpus(corpus, index):
+    """The flat images (white / black / stripes) are what triggered the divergence."""
+    for threshold in (6, 12, 20):
+        result = index.compare(threshold=threshold)
+        streamed = list(index.iter_pairs(threshold))
+        assert len(streamed) == len(result.pairs), f"mismatch at threshold {threshold}"
+
+
+def test_nearest_honours_color_threshold(corpus, index):
+    """A query with a very strict color cutoff must not fall back to the default."""
+    strict = index.nearest(corpus["group_a"][0], k=5, color_threshold=0.001)
+    default = index.nearest(corpus["group_a"][0], k=5)
+    assert len(strict) <= len(default)
