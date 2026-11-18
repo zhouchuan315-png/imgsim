@@ -89,6 +89,20 @@ for path, distance in index.nearest("new-photo.jpg", k=5):
     print(distance, path)
 ```
 
+## What the report looks like
+
+Fifteen real photos from [Unsplash](https://unsplash.com), run with `threshold=14`.
+Three families of edits — resized, recompressed at quality 30, converted to
+grayscale, cropped, brightened — plus four unrelated nature shots that the
+algorithm must leave alone.
+
+![imgsim HTML report](https://raw.githubusercontent.com/zhouchuan315-png/imgsim/main/docs/images/report.png)
+
+11 of 15 images landed in three families. The four decoys — a forest, a mountain
+peak, a waterfall and a silhouette in front of a waterfall — stayed separate. That
+is the hard part: all four are green outdoor scenes with similar composition, and
+the closest decoy pair sits at distance 23 while the loosest real match sits at 11.
+
 ## Choosing a threshold
 
 `threshold` is the maximum Hamming distance between two 64-bit fingerprints —

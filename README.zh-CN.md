@@ -86,6 +86,18 @@ for path, distance in index.nearest("new-photo.jpg", k=5):
     print(distance, path)
 ```
 
+## 报告长什么样
+
+15 张来自 [Unsplash](https://unsplash.com) 的真实照片，用 `threshold=14` 跑出来的结果。
+其中三个家族是同一张照片的不同处理——改尺寸、按质量 30 重新压缩、转灰度、裁切、提亮；
+另外四张是互不相关的自然景观，算法必须把它们区分开。
+
+![imgsim HTML 报告](https://raw.githubusercontent.com/zhouchuan315-png/imgsim/main/docs/images/report.png)
+
+15 张里有 11 张正确归入 3 个家族。四张干扰图——森林、山峰、瀑布、瀑布前的剪影——全部
+保持独立。这才是难点：它们都是构图相近的绿色户外场景，而最接近的干扰对距离是 23，
+最松散的真实匹配距离是 11。
+
 ## 阈值怎么选
 
 `threshold` 是两张图的 64 位指纹之间**允许有多少位不同**：
