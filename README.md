@@ -162,13 +162,13 @@ calling two images similar.
 
 ## Performance
 
-Measured on a 4-core Windows laptop, 1000 JPEGs at 400×400:
+Measured on a 4-core Windows laptop with 1200 JPEGs at 800×600 (real photographs):
 
 | Stage | Time |
 |---|---|
-| Decode + fingerprint | 1.7 s |
-| Similarity matrix + clustering | 2.3 s |
-| **Total** | **4.0 s** |
+| Decode + fingerprint | 1.5 s |
+| Similarity matrix + clustering | 2.8 s |
+| **Total** | **4.3 s** |
 
 Two things make this fast: `Image.draft()` lets libjpeg downsample during decoding
 (5–10× on multi-megapixel photos), and Hamming distance runs through
@@ -180,6 +180,30 @@ Memory is a fingerprint per image — 8 bytes of hash plus a 192-float color sig
 Beyond ~50k images the dense `N×N` matrix becomes the bottleneck (50k → 2.5 GB).
 At that point use `index.iter_pairs()` to stream instead, or bucket by hash prefix
 before comparing. The API leaves room for both.
+
+## Accuracy
+
+Both tests below run on real photographs from [Unsplash](https://unsplash.com),
+not synthetic images.
+
+**False positives.** 992 unrelated photographs, default threshold. Exactly one pair
+was flagged — and it turned out to be the same picture stored twice in the source
+dataset, at distance 0. No unrelated images were merged. Raising the threshold to 14
+introduced one genuine false positive out of 992: a boat on a lake and a bare sea
+horizon, both flat compositions dominated by a single horizontal edge.
+
+**Recall.** 200 photographs, each with five edits — 1200 images in total:
+
+![Recall by edit type](https://raw.githubusercontent.com/zhouchuan315-png/imgsim/main/docs/images/accuracy.png)
+
+All 200 families were recovered with **zero cross-family contamination**, and every
+non-cropped variant matched its original. Cropping is the one real weakness, and it
+is inherent rather than a bug: pHash encodes the *global* low-frequency layout, so
+shifting the frame moves the coefficients. Raising the threshold to 14 lifts recall
+to 87% but, as noted above, starts merging flat compositions that share no subject.
+
+If your corpus is heavy on cropped or recomposed material, budget for that trade-off
+explicitly — run a sample at 10 and at 14 and eyeball which errors you can live with.
 
 ## Semantic mode
 
