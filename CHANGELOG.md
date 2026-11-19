@@ -6,6 +6,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-19
+
+### Fixed
+
+- `imgsim.__version__` and `imgsim --version` reported `0.1.0` throughout the
+  0.1.1 release even though the code was at 0.1.1. The version lived as a
+  hardcoded literal in `__init__.py` as well as in `pyproject.toml`, and only
+  the latter was bumped during release. It now reads from the installed
+  distribution metadata, leaving pyproject.toml as the single source of truth,
+  and a test fails if the two ever disagree again.
+
 ## [0.1.1] - 2026-11-19
 
 ### Fixed
@@ -52,6 +63,7 @@ First public release.
 - `Image.draft()` downsampling during JPEG decode, 5–10× on large photos.
 - Hamming distance via `numpy.bitwise_count` hardware popcount.
 
-[Unreleased]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/zhouchuan315-png/imgsim/releases/tag/v0.1.0

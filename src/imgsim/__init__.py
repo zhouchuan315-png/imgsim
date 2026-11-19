@@ -32,11 +32,20 @@ Two algorithms are available:
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _distribution_version
+
 from ._types import Group, Pair, Result
 from .index import ImageIndex
 from .report import render_html, save_html
 
-__version__ = "0.1.0"
+# Read the version from the installed distribution rather than hardcoding it.
+# A literal here is a second source of truth that silently drifts: 0.1.1 shipped
+# with the new code but __version__ still reporting 0.1.0.
+try:
+    __version__ = _distribution_version("imgsim-py")
+except PackageNotFoundError:  # running from a checkout that was never installed
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
     "Group",
