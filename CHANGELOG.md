@@ -6,6 +6,27 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-19
+
+### Fixed
+
+- `iter_pairs()` applied the flat default color cutoff and skipped the
+  low-information guard, so on corpora containing flat images it returned pairs
+  that `compare()` had already rejected — 91,558 against 91,783 on a 2000-image
+  test. It now shares `_effective_distances()` with `compare()` and `nearest()`,
+  which removes the possibility of the three drifting apart.
+- `nearest()` ignored low-information images and offered no way to adjust the
+  color cutoff. It now accepts `color_threshold` and applies the same rules as
+  `compare()`.
+
+### Changed
+
+- `iter_pairs()` scans one row at a time with a vectorised comparison instead of
+  a Python double loop: 470 ms to 52 ms for 2000 images (9x).
+- README accuracy claims are now measured on 992 real photographs and a
+  1200-image variant set, replacing the synthetic demo. The cropping limitation
+  is documented with its measured numbers rather than left implicit.
+
 ## [0.1.0] - 2026-11-18
 
 First public release.
@@ -31,5 +52,6 @@ First public release.
 - `Image.draft()` downsampling during JPEG decode, 5–10× on large photos.
 - Hamming distance via `numpy.bitwise_count` hardware popcount.
 
-[Unreleased]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/zhouchuan315-png/imgsim/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/zhouchuan315-png/imgsim/releases/tag/v0.1.0
